@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, it, expect, vi } from 'vitest';
-import { Button } from '../../atoms/Button/Button';
+import Button from '../../atoms/Button';
 
 describe('Button Component', () => {
     it('renders with the correct title', () => {

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Button } from '../../atoms/Button/Button';
+import Button from '../../atoms/Button';
 
 interface ContentModalProps {
   form: { title: string; body: string };
