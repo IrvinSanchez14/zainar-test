@@ -1,0 +1,1 @@
+export { ListPosts as default } from './ListPosts'
