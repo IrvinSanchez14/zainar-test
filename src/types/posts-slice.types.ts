@@ -5,6 +5,7 @@ export interface Post {
     id: number;
     title: string;
     body: string;
+    timestamp: string | Date;
 }
 
 export interface PostsState extends EntityState<Post, number> {

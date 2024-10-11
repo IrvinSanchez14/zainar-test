@@ -1,60 +1,81 @@
-import { useState, useEffect, useCallback, ChangeEvent, useReducer } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import useWebSocketConnection from './useWebSocket';
-import { usePosts } from './usePost';
 import { RootState } from '../store/store';
 import useNewMessages from './useNewMessages';
 import { addPost, selectAllPosts, setPosts } from '../store/slices/posts.slice';
-import { formReducer } from '../store/reducer/list-post.reducer';
+import useForm from './useForm';
+import useRandomMessage from './useRandomMessage';
 import { Post } from '../types/posts-slice.types';
+import useFetchPosts from './useFetchPost';
 
 const useListPosts = () => {
   const dispatch = useDispatch();
   const { send, messages } = useWebSocketConnection(import.meta.env.VITE_SOCKET_URL);
-  const [form, formDispatch] = useReducer(formReducer, { title: '', body: '' });
   const [openModal, setOpenModal] = useState(false);
-  const { data, isLoading, error } = usePosts();
   const posts = useSelector((state: RootState) => selectAllPosts(state));
   const { newMessages, showNotification, setShowNotification, setNewMessages } = useNewMessages(messages);
+  const { data, isLoading, error } = useFetchPosts();
+  const { form, changeInput, resetForm } = useForm();
+  useRandomMessage(send, posts.length);
 
   useEffect(() => {
     if (data) {
-      dispatch(setPosts(data));
+      const postsWithTimestamp = data.map((post: Post) => ({
+        ...post,
+        timestamp: new Date().toISOString(),
+      }));
+      dispatch(setPosts(postsWithTimestamp));
     }
   }, [data, dispatch]);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      messages.forEach((message) => {
+        try {
+          const parsedMessage: Post = JSON.parse(message);
+          const postWithTimestamp = { ...parsedMessage, timestamp: new Date().toISOString() };
+          dispatch(addPost(postWithTimestamp));
+        } catch (error) {
+          console.error('Failed to parse message:', error);
+        }
+      });
+    }
+  }, [messages, dispatch]);
 
   const handleOpenModal = useCallback(() => setOpenModal(true), []);
   const closeModal = useCallback(() => setOpenModal(false), []);
 
   const handleShowNewMessages = useCallback(() => {
-    newMessages.forEach((message) => dispatch(addPost(message)));
+    newMessages.forEach((message) => {
+      const postWithTimestamp = { ...message, timestamp: new Date().toISOString() };
+      dispatch(addPost(postWithTimestamp));
+    });
     setNewMessages([]);
     setShowNotification(false);
   }, [dispatch, newMessages, setNewMessages, setShowNotification]);
 
-  const changeInput = useCallback((e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { value, name } = e.target;
-    formDispatch({ type: 'SET_FORM', payload: { [name]: value } });
-  }, []);
-
   const handleSendMessage = useCallback(() => {
     const newMessage: Post = {
-      id: posts.length + (newMessages.length === 0 ? 1 : newMessages.length + 1),
+      id: posts.length + newMessages.length + 1,
       title: form.title,
       body: form.body,
       userId: Math.floor(Math.random() * 1001),
+      timestamp: new Date().toISOString(),
     };
     send(JSON.stringify(newMessage));
-    formDispatch({ type: 'RESET_FORM' });
+    resetForm();
     closeModal();
-  }, [form, posts.length, newMessages.length, send, closeModal]);
+  }, [form, posts.length, newMessages.length, send, resetForm, closeModal]);
+
+  const combinedPosts = [...posts];
 
   return {
     form,
     openModal,
     isLoading,
     error,
-    posts,
+    posts: combinedPosts,
     showNotification,
     newMessages,
     handleOpenModal,

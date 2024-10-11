@@ -1,0 +1,1 @@
+export { SummaryContent as default } from "./SummaryContent"

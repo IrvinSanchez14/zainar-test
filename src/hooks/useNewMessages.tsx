@@ -10,7 +10,12 @@ const useNewMessages = (messages: string[]) => {
       const latestMessage = messages[messages.length - 1];
       try {
         const parsedMessage: Post = JSON.parse(latestMessage);
-        setNewMessages((prevMessages) => [parsedMessage, ...prevMessages]);
+        setNewMessages((prevMessages) => {
+          if (prevMessages.some(message => message.id === parsedMessage.id)) {
+            return prevMessages;
+          }
+          return [parsedMessage, ...prevMessages];
+        });
         setShowNotification(true);
       } catch (error) {
         console.error('Failed to parse message:', error);

@@ -1,49 +1,49 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useMemo } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import useListPosts from '../../hooks/useListPost';
+import useSummary from '../../hooks/useSummary';
+import SummaryContent from '../SummaryContent';
 
 const Card = lazy(() => import('../../atoms/Card'));
-const Modal = lazy(() => import('../Modal'));
 const Header = lazy(() => import('../Header'));
-const Notification = lazy(() => import('../Notification'));
-const ContentModal = lazy(() => import('../ContentModal'));
 
 const Loading = () => <div>Loading...</div>;
 const ErrorFallback = ({ error }: { error: Error }) => <div>Error: {error.message}</div>;
 
 const ListPosts: React.FC = React.memo(() => {
   const {
-    form,
-    openModal,
     isLoading,
     error,
     posts,
-    showNotification,
     newMessages,
     handleOpenModal,
-    closeModal,
-    handleShowNewMessages,
-    changeInput,
-    handleSendMessage,
   } = useListPosts();
 
+  const combinedPosts = useMemo(() => {
+    const allPosts = [...posts];
+    newMessages.forEach((newMsg) => {
+      if (!allPosts.some((post) => post.id === newMsg.id)) {
+        allPosts.push(newMsg);
+      }
+    });
+    return allPosts;
+  }, [posts, newMessages]);
+  
+  const { totalUsers, totalTweets, tweetsInLastFiveMinutes } = useSummary(combinedPosts);
   if (isLoading) return <Loading />;
   if (error) return <div>Error loading posts</div>;
 
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <Suspense fallback={<Loading />}>
-        <div>
+        <div className="p-4">
           <Header handleOpenModal={handleOpenModal} />
-          {showNotification && (
-            <Notification newMessages={newMessages} handleShowNewMessages={handleShowNewMessages} />
-          )}
-          {posts.map(({ title, body }, index) => (
-            <Card key={index} title={title} body={body} />
-          ))}
-          <Modal open={openModal} onClose={closeModal}>
-            <ContentModal form={form} changeInput={changeInput} handleSendMessage={handleSendMessage} />
-          </Modal>
+          <SummaryContent totalTweets={totalTweets} totalUsers={totalUsers} tweetsInLastFiveMinutes={tweetsInLastFiveMinutes} />
+          <div>
+            {combinedPosts.map(({ title, body }, index) => (
+              <Card key={index} title={title} body={body} />
+            ))}
+          </div>
         </div>
       </Suspense>
     </ErrorBoundary>

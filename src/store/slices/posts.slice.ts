@@ -3,6 +3,8 @@ import { createSelector } from 'reselect';
 import { RootState } from '../store';
 import { Post, PostsState } from '../../types/posts-slice.types';
 
+const selectId = (post: Post) => post.id ?? Math.random().toString(36).substring(2, 9);
+
 const postsAdapter = createEntityAdapter<Post>({
   sortComparer: (a, b) => b.id - a.id,
 });
@@ -17,10 +19,16 @@ const postsSlice = createSlice({
   initialState,
   reducers: {
     setPosts(state, action: PayloadAction<Post[]>) {
-      postsAdapter.setAll(state, action.payload);
+      postsAdapter.setAll(
+        state, 
+        action.payload.map(post => ({ ...post, id: selectId(post) }))
+      );
     },
     addPost(state, action: PayloadAction<Post>) {
-      postsAdapter.addOne(state, action.payload);
+      postsAdapter.addOne(
+        state, 
+        { ...action.payload, id: selectId(action.payload) }
+      );
     },
   },
 });
